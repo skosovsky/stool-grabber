@@ -1,10 +1,11 @@
 version: "1.0"
 target:
-  channel_username: "@channel_name"
+  channel_username: "@dindex"
   parse_depth: 50
   delay_ms: 1500
 filter:
   min_comments_to_analyze: 4
+  min_unique_posts: 2
   max_users_to_analyze: 20
   exclude_admins: false
 llm:

@@ -10,7 +10,7 @@ import (
 func TestAggregate_MinCommentsAndTopNAndSorting(t *testing.T) {
 	t.Parallel()
 
-	params := Params{MinCommentsToAnalyze: 2, MaxUsersToAnalyze: 2, ExcludeAdmins: false}
+	params := Params{MinCommentsToAnalyze: 2, MinUniquePosts: 1, MaxUsersToAnalyze: 2, ExcludeAdmins: false}
 
 	raw := &domain.ScrapeResult{
 		Threads: []domain.PostThread{
@@ -69,7 +69,7 @@ func TestAggregate_MinCommentsAndTopNAndSorting(t *testing.T) {
 func TestAggregate_ExcludeAdmins(t *testing.T) {
 	t.Parallel()
 
-	params := Params{MinCommentsToAnalyze: 1, MaxUsersToAnalyze: 10, ExcludeAdmins: true}
+	params := Params{MinCommentsToAnalyze: 1, MinUniquePosts: 1, MaxUsersToAnalyze: 10, ExcludeAdmins: true}
 
 	raw := &domain.ScrapeResult{
 		ChannelAdminUserIDs: []int64{42},
@@ -99,7 +99,7 @@ func TestAggregate_ExcludeAdmins(t *testing.T) {
 func TestAggregate_IgnoresZeroUserIDAndEmptyText(t *testing.T) {
 	t.Parallel()
 
-	params := Params{MinCommentsToAnalyze: 1, MaxUsersToAnalyze: 10, ExcludeAdmins: false}
+	params := Params{MinCommentsToAnalyze: 1, MinUniquePosts: 1, MaxUsersToAnalyze: 10, ExcludeAdmins: false}
 
 	raw := &domain.ScrapeResult{
 		Threads: []domain.PostThread{
@@ -129,7 +129,7 @@ func TestAggregate_IgnoresZeroUserIDAndEmptyText(t *testing.T) {
 func TestAggregate_PopulatesUsernameFromDirectory(t *testing.T) {
 	t.Parallel()
 
-	params := Params{MinCommentsToAnalyze: 1, MaxUsersToAnalyze: 10, ExcludeAdmins: false}
+	params := Params{MinCommentsToAnalyze: 1, MinUniquePosts: 1, MaxUsersToAnalyze: 10, ExcludeAdmins: false}
 
 	raw := &domain.ScrapeResult{
 		Users: map[int64]domain.UserRef{
@@ -162,6 +162,43 @@ func TestAggregate_PopulatesUsernameFromDirectory(t *testing.T) {
 	}
 	if got := byID["10"].Username; got != "Bob Builder" {
 		t.Fatalf("username=%q, want %q", got, "Bob Builder")
+	}
+}
+
+func TestAggregate_ScorePrefersBreadthOverSinglePostBurst(t *testing.T) {
+	t.Parallel()
+
+	// user 1: 10 сообщений под 1 постом -> score=10*1=10
+	// user 2: 4 сообщения под 4 постами -> score=4*4=16 (должен быть выше)
+	params := Params{MinCommentsToAnalyze: 1, MinUniquePosts: 2, MaxUsersToAnalyze: 10, ExcludeAdmins: false}
+
+	raw := &domain.ScrapeResult{
+		Threads: []domain.PostThread{
+			{ChannelMessageID: 1, PostText: "p1", Comments: []domain.Comment{
+				{SenderUserID: 1, Text: "a1"}, {SenderUserID: 1, Text: "a2"}, {SenderUserID: 1, Text: "a3"},
+				{SenderUserID: 1, Text: "a4"}, {SenderUserID: 1, Text: "a5"}, {SenderUserID: 1, Text: "a6"},
+				{SenderUserID: 1, Text: "a7"}, {SenderUserID: 1, Text: "a8"}, {SenderUserID: 1, Text: "a9"},
+				{SenderUserID: 1, Text: "a10"},
+				{SenderUserID: 2, Text: "b1"},
+			}},
+			{ChannelMessageID: 2, PostText: "p2", Comments: []domain.Comment{{SenderUserID: 2, Text: "b2"}}},
+			{ChannelMessageID: 3, PostText: "p3", Comments: []domain.Comment{{SenderUserID: 2, Text: "b3"}}},
+			{ChannelMessageID: 4, PostText: "p4", Comments: []domain.Comment{{SenderUserID: 2, Text: "b4"}}},
+		},
+	}
+
+	res, err := Aggregate(params, raw)
+	if err != nil {
+		t.Fatalf("Aggregate() error: %v", err)
+	}
+	if len(res.Users) != 1 {
+		t.Fatalf("len(Users)=%d, want 1 (user 1 должен быть отфильтрован по min_unique_posts)", len(res.Users))
+	}
+	if res.Users[0].UserID != "2" {
+		t.Fatalf("top user_id=%q, want %q", res.Users[0].UserID, "2")
+	}
+	if len(res.UsersDebugJSON) == 0 {
+		t.Fatalf("UsersDebugJSON empty")
 	}
 }
 

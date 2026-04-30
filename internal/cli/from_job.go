@@ -12,6 +12,7 @@ func FromJob(job *config.Job) *JobConfig {
 		DelayMS:         job.Target.DelayMS,
 
 		MinCommentsToAnalyze: job.Filter.MinCommentsToAnalyze,
+		MinUniquePosts:       job.Filter.MinUniquePosts,
 		MaxUsersToAnalyze:    job.Filter.MaxUsersToAnalyze,
 		ExcludeAdmins:        job.Filter.ExcludeAdmins,
 

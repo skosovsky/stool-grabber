@@ -9,6 +9,7 @@ type JobConfig struct {
 	DelayMS         int
 
 	MinCommentsToAnalyze int
+	MinUniquePosts       int
 	MaxUsersToAnalyze    int
 	ExcludeAdmins        bool
 

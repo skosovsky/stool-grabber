@@ -18,6 +18,10 @@ func Validate(job Job) error {
 		return validationError("filter.min_comments_to_analyze", "must be >= 1")
 	}
 
+	if job.Filter.MinUniquePosts < 0 {
+		return validationError("filter.min_unique_posts", "must be >= 0")
+	}
+
 	if job.Filter.MaxUsersToAnalyze < 1 {
 		return validationError("filter.max_users_to_analyze", "must be >= 1")
 	}

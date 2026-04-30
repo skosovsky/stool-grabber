@@ -67,6 +67,7 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 	}
 	aggregateParams := aggregate.Params{
 		MinCommentsToAnalyze: job.MinCommentsToAnalyze,
+		MinUniquePosts:       job.MinUniquePosts,
 		MaxUsersToAnalyze:    job.MaxUsersToAnalyze,
 		ExcludeAdmins:        job.ExcludeAdmins,
 	}
@@ -159,6 +160,13 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 			if err := reportfs.WriteRawJSONFile(usersPath, final.Agg.UsersJSON); err != nil {
 				return err
 			}
+			if len(final.Agg.UsersDebugJSON) > 0 {
+				debugPath := usersDebugDumpPath(job.OutputFilepath)
+				_, _ = fmt.Fprintf(deps.Out, "Report: пишу users debug json -> %s\n", debugPath)
+				if err := reportfs.WriteRawJSONFile(debugPath, final.Agg.UsersDebugJSON); err != nil {
+					return err
+				}
+			}
 		}
 		return nil
 	})
@@ -191,5 +199,14 @@ func usersDumpPath(markdownPath string) string {
 		return markdownPath + ".users.json"
 	}
 	return base + ".users.json"
+}
+
+func usersDebugDumpPath(markdownPath string) string {
+	ext := strings.ToLower(filepath.Ext(markdownPath))
+	base := strings.TrimSuffix(markdownPath, ext)
+	if base == markdownPath {
+		return markdownPath + ".users.debug.json"
+	}
+	return base + ".users.debug.json"
 }
 

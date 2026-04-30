@@ -16,6 +16,7 @@ type JobTarget struct {
 
 type JobFilter struct {
 	MinCommentsToAnalyze int  `yaml:"min_comments_to_analyze"`
+	MinUniquePosts       int  `yaml:"min_unique_posts"`
 	MaxUsersToAnalyze    int  `yaml:"max_users_to_analyze"`
 	ExcludeAdmins        bool `yaml:"exclude_admins"`
 }
