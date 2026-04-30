@@ -16,3 +16,6 @@ out/
 *.out
 bin/
 
+# macOS Finder
+.DS_Store
+

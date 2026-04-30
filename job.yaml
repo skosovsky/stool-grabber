@@ -1,6 +1,6 @@
 version: "1.0"
 target:
-  channel_username: "@dindex"
+  channel_username: "@channel_name"
   parse_depth: 50
   delay_ms: 1500
 filter:
