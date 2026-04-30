@@ -6,20 +6,23 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/gotd/td/telegram/auth"
 	"github.com/gotd/td/tg"
+	"golang.org/x/term"
 )
 
 type stdAuthenticator struct {
-	r *bufio.Reader
-	w io.Writer
+	in io.Reader
+	r  *bufio.Reader
+	w  io.Writer
 }
 
 // NewInteractiveAuthenticator prompts for phone number, OTP code (and optionally 2FA password) using r/w.
 func NewInteractiveAuthenticator(in io.Reader, out io.Writer) auth.UserAuthenticator {
-	return &stdAuthenticator{r: bufio.NewReader(in), w: out}
+	return &stdAuthenticator{in: in, r: bufio.NewReader(in), w: out}
 }
 
 func (a *stdAuthenticator) Phone(_ context.Context) (string, error) {
@@ -43,11 +46,11 @@ func (a *stdAuthenticator) Code(_ context.Context, sent *tg.AuthSentCode) (strin
 }
 
 func (a *stdAuthenticator) Password(_ context.Context) (string, error) {
-	line, err := readLine(a.r, a.w, "Two-step verification password (2FA): ")
+	pw, err := readPassword(a.in, a.r, a.w, "Two-step verification password (2FA): ")
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(line), nil
+	return strings.TrimSpace(pw), nil
 }
 
 func (a *stdAuthenticator) AcceptTermsOfService(_ context.Context, tos tg.HelpTermsOfService) error {
@@ -82,4 +85,21 @@ func readLine(r *bufio.Reader, w io.Writer, prompt string) (string, error) {
 		return "", fmt.Errorf("read input (EOF?): %w", err)
 	}
 	return strings.TrimSpace(line), nil
+}
+
+func readPassword(in io.Reader, r *bufio.Reader, w io.Writer, prompt string) (string, error) {
+	// Best-effort: if input is a terminal, read password without echo.
+	if f, ok := in.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
+		if _, err := fmt.Fprint(w, prompt); err != nil {
+			return "", err
+		}
+		b, err := term.ReadPassword(int(f.Fd()))
+		_, _ = fmt.Fprintln(w)
+		if err != nil {
+			return "", fmt.Errorf("read 2FA password: %w", err)
+		}
+		return string(b), nil
+	}
+	// Fallback for non-tty (pipes/tests).
+	return readLine(r, w, prompt)
 }
