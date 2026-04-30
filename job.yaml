@@ -1,7 +1,7 @@
 version: "1.0"
 target:
   channel_username: "@dindex"
-  parse_depth: 10
+  parse_depth: 50
   delay_ms: 1500
 filter:
   min_comments_to_analyze: 4

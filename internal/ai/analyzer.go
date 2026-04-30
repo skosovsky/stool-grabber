@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"stool-grabber/internal/aggregate"
@@ -46,9 +47,18 @@ func analyzeWithInvoker(ctx context.Context, inv prompty.Invoker, exec *prompty.
 		if err == nil {
 			return false
 		}
-		// Never retry deterministic structured-output validation errors.
+		// Never retry deterministic structured-output validation errors,
+		// except for common truncation cases (e.g. incomplete JSON).
 		var ve *prompty.ValidationError
 		if errors.As(err, &ve) {
+			if ve != nil && ve.Err != nil {
+				msg := ve.Err.Error()
+				// Truncated JSON is often transient on overloaded/free endpoints.
+				if strings.Contains(msg, "unexpected end of JSON input") ||
+					strings.Contains(msg, "unexpected EOF") {
+					return true
+				}
+			}
 			return false
 		}
 		if ctx.Err() != nil {
@@ -64,7 +74,7 @@ func analyzeWithInvoker(ctx context.Context, inv prompty.Invoker, exec *prompty.
 	execWithMW := routery.Apply(
 		base,
 		routery.Timeout[*prompty.PromptExecution, *contractgen.AnalyzeCoreOutput](180*time.Second),
-		routery.RetryIf[*prompty.PromptExecution, *contractgen.AnalyzeCoreOutput](3, 1500*time.Millisecond, pred),
+		routery.RetryIf[*prompty.PromptExecution, *contractgen.AnalyzeCoreOutput](5, 1500*time.Millisecond, pred),
 	)
 
 	return execWithMW.Execute(ctx, exec)

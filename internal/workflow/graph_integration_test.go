@@ -21,6 +21,9 @@ func TestWorkflow_FullPipeline(t *testing.T) {
 		Scraper: ScraperFunc(func(_ context.Context) (*domain.ScrapeResult, error) {
 			return &domain.ScrapeResult{
 				ChannelUsername: "chan",
+				Users: map[int64]domain.UserRef{
+					10: {ID: 10, Username: "u10", FirstName: "A", LastName: "B"},
+				},
 				Threads: []domain.PostThread{
 					{ChannelMessageID: 1, Comments: []domain.Comment{{SenderUserID: 10, Text: "x"}}},
 				},
@@ -63,6 +66,12 @@ func TestWorkflow_FullPipeline(t *testing.T) {
 	}
 	if !strings.Contains(final.ReportMarkdown, "## Hot topics") {
 		t.Fatalf("missing hot topics section: %q", final.ReportMarkdown)
+	}
+	if !strings.Contains(final.ReportMarkdown, "@u10") {
+		t.Fatalf("missing username: %q", final.ReportMarkdown)
+	}
+	if !strings.Contains(final.ReportMarkdown, "A B") {
+		t.Fatalf("missing full name: %q", final.ReportMarkdown)
 	}
 }
 

@@ -80,16 +80,20 @@ func ScrapeChannelComments(ctx context.Context, api *tg.Client, params ScrapePar
 		ChannelUsername:        username,
 		LinkedDiscussionChatID: linkedID,
 		ChannelAdminUserIDs:    nil,
+		Users:                 make(map[int64]domain.UserRef),
 		Threads:                make([]domain.PostThread, 0, len(posts)),
 	}
 
 	for _, msg := range posts {
-		comments, err := fetchRepliesForPost(ctx, api, inputPeer, msg.ID, params.DelayMS)
+		comments, usersMap, err := fetchRepliesForPost(ctx, api, inputPeer, msg.ID, params.DelayMS)
 		if err != nil {
 			return nil, fmt.Errorf("getReplies for channel msg %d: %w", msg.ID, err)
 		}
+		mergeUsers(out.Users, usersMap)
 		out.Threads = append(out.Threads, domain.PostThread{
 			ChannelMessageID: msg.ID,
+			PostText:         msg.Message,
+			PostDateUnix:     msg.Date,
 			Comments:         comments,
 		})
 	}
@@ -263,12 +267,13 @@ func fetchRepliesForPost(
 	channelPeer tg.InputPeerClass,
 	channelPostID int,
 	delayMS int,
-) ([]domain.Comment, error) {
+) ([]domain.Comment, map[int64]domain.UserRef, error) {
 	const page = 100
 	offsetID := 0
 	offsetDate := 0
 	seen := make(map[int]struct{})
 	var comments []domain.Comment
+	users := make(map[int64]domain.UserRef)
 
 	for {
 		oID, oDate := offsetID, offsetDate
@@ -286,12 +291,13 @@ func fetchRepliesForPost(
 			})
 		})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		rawMsgs, _, _ := unwrapMessagesBox(boxed)
+		rawMsgs, _, rawUsers := unwrapMessagesBox(boxed)
 		if len(rawMsgs) == 0 {
 			break
 		}
+		addUsers(users, rawUsers)
 
 		novel := 0
 		nextMinID := 0
@@ -319,7 +325,40 @@ func fetchRepliesForPost(
 		offsetID = nextMinID
 		offsetDate = nextDate
 	}
-	return comments, nil
+	return comments, users, nil
+}
+
+func addUsers(dst map[int64]domain.UserRef, raw []tg.UserClass) {
+	for _, uc := range raw {
+		u, ok := uc.(*tg.User)
+		if !ok || u == nil {
+			continue
+		}
+		if u.ID == 0 {
+			continue
+		}
+		dst[u.ID] = domain.UserRef{
+			ID:        u.ID,
+			Username:  u.Username,
+			FirstName: u.FirstName,
+			LastName:  u.LastName,
+		}
+	}
+}
+
+func mergeUsers(dst map[int64]domain.UserRef, src map[int64]domain.UserRef) {
+	if dst == nil || src == nil {
+		return
+	}
+	for id, u := range src {
+		if id == 0 {
+			continue
+		}
+		if _, ok := dst[id]; ok {
+			continue
+		}
+		dst[id] = u
+	}
 }
 
 func rawCommentFromMessage(m *tg.Message) domain.Comment {

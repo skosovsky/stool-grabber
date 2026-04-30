@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
+	"strings"
 
 	"stool-grabber/internal/aggregate"
 	"stool-grabber/internal/ai"
@@ -115,6 +117,16 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 				return err
 			}
 		}
+
+		if job.OutputFilepath != "" && final.Scrape != nil {
+			td, _, err := report.BuildTechnicalDump(final.Scrape)
+			if err != nil {
+				return err
+			}
+			if err := reportfs.WriteJSONFile(techDumpPath(job.OutputFilepath), td); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 }
@@ -128,5 +140,14 @@ func countComments(res *domain.ScrapeResult) int {
 		n += len(t.Comments)
 	}
 	return n
+}
+
+func techDumpPath(markdownPath string) string {
+	ext := strings.ToLower(filepath.Ext(markdownPath))
+	base := strings.TrimSuffix(markdownPath, ext)
+	if base == markdownPath {
+		return markdownPath + ".tech.json"
+	}
+	return base + ".tech.json"
 }
 

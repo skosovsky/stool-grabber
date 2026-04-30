@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"stool-grabber/internal/domain"
 	"stool-grabber/internal/report"
 
 	"github.com/skosovsky/flowy"
@@ -74,7 +75,11 @@ func NewGraph(deps Deps) (*flowy.Graph[State], error) {
 		if state.Analyze == nil {
 			return State{}, fmt.Errorf("report_llm: missing analyze result")
 		}
-		return State{ReportMarkdown: report.RenderLLMReport(state.ReportParams, state.Analyze)}, nil
+		users := map[int64]domain.UserRef(nil)
+		if state.Scrape != nil {
+			users = state.Scrape.Users
+		}
+		return State{ReportMarkdown: report.RenderLLMReport(state.ReportParams, state.Analyze, users)}, nil
 	})
 
 	b.AddNode(nodeFinish, func(_ context.Context, _ State) (State, error) { return State{}, nil })
