@@ -75,6 +75,7 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 		ChannelUsername: job.ChannelUsername,
 		Model:          job.Model,
 		Temperature:    job.Temperature,
+		TimeoutSeconds: job.TimeoutSeconds,
 		PromptTemplate: job.PromptTemplate,
 	}
 	reportParams := report.Params{

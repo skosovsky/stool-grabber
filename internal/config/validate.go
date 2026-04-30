@@ -34,6 +34,10 @@ func Validate(job Job) error {
 		return validationError("llm.model", "must not be empty")
 	}
 
+	if job.LLM.TimeoutSeconds < 0 {
+		return validationError("llm.timeout_seconds", "must be >= 0")
+	}
+
 	if strings.TrimSpace(job.Output.Filepath) == "" {
 		return validationError("output.filepath", "must not be empty")
 	}

@@ -1,6 +1,6 @@
 version: "1.0"
 target:
-  channel_username: "@dindex"
+  channel_username: "@channel_name"
   parse_depth: 50
   delay_ms: 1500
 filter:
@@ -12,6 +12,7 @@ llm:
   provider: "openrouter"
   model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
   temperature: 0.1
+  timeout_seconds: 900
   prompt_template: >
     Ты — суровый аналитик социальных взаимодействий и профилировщик аудитории.
     Твоя задача — извлечь социальный граф из предоставленного JSON-дампа комментариев Telegram-канала.

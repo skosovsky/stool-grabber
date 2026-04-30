@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,13 +33,20 @@ func NewDepsFromEnv() (Deps, error) {
 	// Explicit HTTP client from composition root (runtime config).
 	httpClient := &http.Client{}
 
+	timeout := 900 * time.Second
+	if s := strings.TrimSpace(os.Getenv("OPENROUTER_TIMEOUT_SECONDS")); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			timeout = time.Duration(n) * time.Second
+		}
+	}
+
 	return NewDeps(Runtime{
 		Telegram:   tgCreds,
 		OpenRouter: orCfg,
 		In:         os.Stdin,
 		Out:        os.Stdout,
 		HTTPClient: httpClient,
-		OpenRouterTimeout: 300 * time.Second,
+		OpenRouterTimeout: timeout,
 	})
 }
 

@@ -18,6 +18,7 @@ func FromJob(job *config.Job) *JobConfig {
 
 		Model:          job.LLM.Model,
 		Temperature:    job.LLM.Temperature,
+		TimeoutSeconds: job.LLM.TimeoutSeconds,
 		PromptTemplate: job.LLM.PromptTemplate,
 
 		OutputFilepath: job.Output.Filepath,

@@ -5,6 +5,7 @@ type AnalyzeParams struct {
 	ChannelUsername string
 	Model          string
 	Temperature    float64
+	TimeoutSeconds int
 	PromptTemplate string
 }
 

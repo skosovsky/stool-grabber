@@ -34,7 +34,10 @@ func (a *Analyzer) Analyze(ctx context.Context, params AnalyzeParams, agg *aggre
 	}
 	timeout := a.Timeout
 	if timeout <= 0 {
-		timeout = 300 * time.Second
+		timeout = 900 * time.Second
+	}
+	if params.TimeoutSeconds > 0 {
+		timeout = time.Duration(params.TimeoutSeconds) * time.Second
 	}
 	return analyzeWithInvoker(ctx, a.Invoker, exec, timeout)
 }

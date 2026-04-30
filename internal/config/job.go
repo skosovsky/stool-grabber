@@ -25,6 +25,7 @@ type JobLLM struct {
 	Provider       string  `yaml:"provider"`
 	Model          string  `yaml:"model"`
 	Temperature    float64 `yaml:"temperature"`
+	TimeoutSeconds int     `yaml:"timeout_seconds"`
 	PromptTemplate string  `yaml:"prompt_template"`
 }
 

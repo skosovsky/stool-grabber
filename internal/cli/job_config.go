@@ -15,6 +15,7 @@ type JobConfig struct {
 
 	Model          string
 	Temperature    float64
+	TimeoutSeconds int
 	PromptTemplate string
 
 	OutputFilepath string
