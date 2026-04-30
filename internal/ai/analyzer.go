@@ -55,6 +55,11 @@ func analyzeWithInvoker(ctx context.Context, inv prompty.Invoker, exec *prompty.
 		if err == nil {
 			return false
 		}
+		// Retry known transient provider failures (e.g. OpenRouter free endpoints).
+		msg := err.Error()
+		if strings.Contains(msg, "response contains no content") {
+			return true
+		}
 		// Never retry deterministic structured-output validation errors,
 		// except for common truncation cases (e.g. incomplete JSON).
 		var ve *prompty.ValidationError
@@ -76,7 +81,7 @@ func analyzeWithInvoker(ctx context.Context, inv prompty.Invoker, exec *prompty.
 		if errors.As(err, &ne) {
 			return ne.Timeout() || ne.Temporary()
 		}
-		return err == context.DeadlineExceeded
+		return errors.Is(err, context.DeadlineExceeded)
 	}
 
 	execWithMW := routery.Apply(
