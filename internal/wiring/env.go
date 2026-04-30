@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"stool-grabber/internal/aiinfra/openrouter"
 	"stool-grabber/internal/telegram"
@@ -37,6 +38,7 @@ func NewDepsFromEnv() (Deps, error) {
 		In:         os.Stdin,
 		Out:        os.Stdout,
 		HTTPClient: httpClient,
+		OpenRouterTimeout: 180 * time.Second,
 	})
 }
 

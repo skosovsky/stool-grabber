@@ -63,7 +63,7 @@ func analyzeWithInvoker(ctx context.Context, inv prompty.Invoker, exec *prompty.
 
 	execWithMW := routery.Apply(
 		base,
-		routery.Timeout[*prompty.PromptExecution, *contractgen.AnalyzeCoreOutput](90*time.Second),
+		routery.Timeout[*prompty.PromptExecution, *contractgen.AnalyzeCoreOutput](180*time.Second),
 		routery.RetryIf[*prompty.PromptExecution, *contractgen.AnalyzeCoreOutput](3, 1500*time.Millisecond, pred),
 	)
 
