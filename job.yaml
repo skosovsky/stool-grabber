@@ -1,12 +1,12 @@
 version: "1.0"
 target:
-  channel_username: "example_channel"
+  channel_username: "@dindex"
   parse_depth: 10
   delay_ms: 1500
 filter:
   min_comments_to_analyze: 4
   max_users_to_analyze: 20
-  exclude_admins: true
+  exclude_admins: false
 llm:
   provider: "openrouter"
   model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"

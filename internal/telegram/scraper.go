@@ -8,6 +8,7 @@ import (
 	"stool-grabber/internal/domain"
 
 	"github.com/gotd/td/tg"
+	"github.com/gotd/td/tgerr"
 )
 
 // ScrapeChannelComments собирает последние посты канала и комментарии через messages.getReplies.
@@ -93,11 +94,19 @@ func ScrapeChannelComments(ctx context.Context, api *tg.Client, params ScrapePar
 		})
 	}
 
-	adminIDs, err := fetchChannelAdminUserIDs(ctx, api, inputChannel, params.DelayMS)
-	if err != nil {
-		return nil, fmt.Errorf("fetch channel admins: %w", err)
+	if params.ExcludeAdmins {
+		adminIDs, err := fetchChannelAdminUserIDs(ctx, api, inputChannel, params.DelayMS)
+		if err != nil {
+			// For public channels Telegram may require admin rights to list admins.
+			// In that case we continue without admin filtering.
+			if tgerr.Is(err, "CHAT_ADMIN_REQUIRED") {
+				adminIDs = nil
+			} else {
+				return nil, fmt.Errorf("fetch channel admins: %w", err)
+			}
+		}
+		out.ChannelAdminUserIDs = adminIDs
 	}
-	out.ChannelAdminUserIDs = adminIDs
 
 	return out, nil
 }

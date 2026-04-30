@@ -64,6 +64,5 @@ go run ./cmd/stool-grabber run -c job.yaml
 
 ```bash
 go test ./...
-bash scripts/archcheck.sh
 ```
 

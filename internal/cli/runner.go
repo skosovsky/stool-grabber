@@ -43,6 +43,7 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 		ChannelUsername: job.ChannelUsername,
 		ParseDepth:      job.ParseDepth,
 		DelayMS:         job.DelayMS,
+		ExcludeAdmins:   job.ExcludeAdmins,
 	}
 	aggregateParams := aggregate.Params{
 		MinCommentsToAnalyze: job.MinCommentsToAnalyze,
