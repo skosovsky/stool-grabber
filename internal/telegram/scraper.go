@@ -315,6 +315,11 @@ func fetchRepliesForPost(
 			})
 		})
 		if err != nil {
+			// Telegram occasionally returns MSG_ID_INVALID for specific posts (deleted/forwarded/migrated/etc).
+			// This should not fail the whole scrape; we treat it as "no replies for this post".
+			if tgerr.Is(err, "MSG_ID_INVALID") || tgerr.Is(err, "MESSAGE_ID_INVALID") {
+				return nil, users, nil
+			}
 			return nil, nil, err
 		}
 		rawMsgs, _, rawUsers := unwrapMessagesBox(boxed)
