@@ -38,7 +38,7 @@ func NewDepsFromEnv() (Deps, error) {
 		In:         os.Stdin,
 		Out:        os.Stdout,
 		HTTPClient: httpClient,
-		OpenRouterTimeout: 180 * time.Second,
+		OpenRouterTimeout: 300 * time.Second,
 	})
 }
 

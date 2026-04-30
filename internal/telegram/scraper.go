@@ -71,10 +71,12 @@ func ScrapeChannelComments(ctx context.Context, api *tg.Client, params ScrapePar
 		return nil, fmt.Errorf("канал @%s не связан с группой обсуждений (linked_chat_id)", username)
 	}
 
+	emitProgress(params, ProgressEvent{Stage: "scrape_posts_start", PostTotal: params.ParseDepth})
 	posts, err := fetchChannelPosts(ctx, api, inputPeer, channel.ID, params.ParseDepth, params.DelayMS)
 	if err != nil {
 		return nil, err
 	}
+	emitProgress(params, ProgressEvent{Stage: "scrape_posts_done", PostTotal: len(posts)})
 
 	out := &domain.ScrapeResult{
 		ChannelUsername:        username,
@@ -84,11 +86,24 @@ func ScrapeChannelComments(ctx context.Context, api *tg.Client, params ScrapePar
 		Threads:                make([]domain.PostThread, 0, len(posts)),
 	}
 
-	for _, msg := range posts {
+	for i, msg := range posts {
+		emitProgress(params, ProgressEvent{
+			Stage:     "scrape_replies_start",
+			PostIndex: i + 1,
+			PostTotal: len(posts),
+			PostID:    msg.ID,
+		})
 		comments, usersMap, err := fetchRepliesForPost(ctx, api, inputPeer, msg.ID, params.DelayMS)
 		if err != nil {
 			return nil, fmt.Errorf("getReplies for channel msg %d: %w", msg.ID, err)
 		}
+		emitProgress(params, ProgressEvent{
+			Stage:           "scrape_replies_done",
+			PostIndex:       i + 1,
+			PostTotal:       len(posts),
+			PostID:          msg.ID,
+			CommentsFetched: len(comments),
+		})
 		mergeUsers(out.Users, usersMap)
 		out.Threads = append(out.Threads, domain.PostThread{
 			ChannelMessageID: msg.ID,
@@ -99,20 +114,29 @@ func ScrapeChannelComments(ctx context.Context, api *tg.Client, params ScrapePar
 	}
 
 	if params.ExcludeAdmins {
+		emitProgress(params, ProgressEvent{Stage: "scrape_admins_start"})
 		adminIDs, err := fetchChannelAdminUserIDs(ctx, api, inputChannel, params.DelayMS)
 		if err != nil {
 			// For public channels Telegram may require admin rights to list admins.
 			// In that case we continue without admin filtering.
 			if tgerr.Is(err, "CHAT_ADMIN_REQUIRED") {
 				adminIDs = nil
+				emitProgress(params, ProgressEvent{Stage: "scrape_admins_skipped", Message: "CHAT_ADMIN_REQUIRED"})
 			} else {
 				return nil, fmt.Errorf("fetch channel admins: %w", err)
 			}
 		}
 		out.ChannelAdminUserIDs = adminIDs
+		emitProgress(params, ProgressEvent{Stage: "scrape_admins_done", CommentsFetched: len(adminIDs)})
 	}
 
 	return out, nil
+}
+
+func emitProgress(params ScrapeParams, ev ProgressEvent) {
+	if params.Progress != nil {
+		params.Progress(ev)
+	}
 }
 
 func unwrapMessagesBox(box tg.MessagesMessagesClass) ([]tg.MessageClass, []tg.ChatClass, []tg.UserClass) {

@@ -46,6 +46,24 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 		ParseDepth:      job.ParseDepth,
 		DelayMS:         job.DelayMS,
 		ExcludeAdmins:   job.ExcludeAdmins,
+		Progress: func(ev telegram.ProgressEvent) {
+			switch ev.Stage {
+			case "scrape_posts_start":
+				_, _ = fmt.Fprintf(deps.Out, "Scrape: читаю последние посты (parse_depth=%d)…\n", ev.PostTotal)
+			case "scrape_posts_done":
+				_, _ = fmt.Fprintf(deps.Out, "Scrape: постов найдено: %d\n", ev.PostTotal)
+			case "scrape_replies_start":
+				_, _ = fmt.Fprintf(deps.Out, "Scrape: пост %d/%d (id=%d) — читаю комментарии…\n", ev.PostIndex, ev.PostTotal, ev.PostID)
+			case "scrape_replies_done":
+				_, _ = fmt.Fprintf(deps.Out, "Scrape: пост %d/%d (id=%d) — комментариев: %d\n", ev.PostIndex, ev.PostTotal, ev.PostID, ev.CommentsFetched)
+			case "scrape_admins_start":
+				_, _ = fmt.Fprintln(deps.Out, "Scrape: читаю админов канала…")
+			case "scrape_admins_done":
+				_, _ = fmt.Fprintf(deps.Out, "Scrape: админов: %d\n", ev.CommentsFetched)
+			case "scrape_admins_skipped":
+				_, _ = fmt.Fprintf(deps.Out, "Scrape: админы пропущены (%s)\n", ev.Message)
+			}
+		},
 	}
 	aggregateParams := aggregate.Params{
 		MinCommentsToAnalyze: job.MinCommentsToAnalyze,
@@ -76,6 +94,7 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 				return aggregate.Aggregate(aggregateParams, scrape)
 			}),
 			Analyzer: workflow.AnalyzerFunc(func(c context.Context, agg *aggregate.Result) (*contractgen.AnalyzeCoreOutput, error) {
+				_, _ = fmt.Fprintf(deps.Out, "Analyze: отправляю пользователей в модель %q…\n", job.Model)
 				return deps.Analyzer.Analyze(c, analyzeParams, agg)
 			}),
 		})
@@ -113,6 +132,7 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 			_, _ = fmt.Fprintln(deps.Out, final.ReportMarkdown)
 		}
 		if job.OutputFilepath != "" && final.ReportMarkdown != "" {
+			_, _ = fmt.Fprintf(deps.Out, "Report: пишу markdown -> %s\n", job.OutputFilepath)
 			if err := reportfs.WriteMarkdownFile(job.OutputFilepath, final.ReportMarkdown); err != nil {
 				return err
 			}
@@ -123,7 +143,9 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 			if err != nil {
 				return err
 			}
-			if err := reportfs.WriteJSONFile(techDumpPath(job.OutputFilepath), td); err != nil {
+			techPath := techDumpPath(job.OutputFilepath)
+			_, _ = fmt.Fprintf(deps.Out, "Report: пишу tech json -> %s\n", techPath)
+			if err := reportfs.WriteJSONFile(techPath, td); err != nil {
 				return err
 			}
 		}
