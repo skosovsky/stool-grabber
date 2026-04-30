@@ -14,6 +14,7 @@ type State struct {
 	Scrape  *domain.ScrapeResult
 	Agg     *aggregate.Result
 	Analyze *contractgen.AnalyzeCoreOutput
+	AnalyzeErr string
 
 	ReportParams   report.Params
 	ReportMarkdown string
@@ -29,6 +30,9 @@ func Reducer(current, update State) State {
 	}
 	if update.Analyze != nil {
 		current.Analyze = update.Analyze
+	}
+	if update.AnalyzeErr != "" {
+		current.AnalyzeErr = update.AnalyzeErr
 	}
 	if update.ReportParams != (report.Params{}) {
 		current.ReportParams = update.ReportParams

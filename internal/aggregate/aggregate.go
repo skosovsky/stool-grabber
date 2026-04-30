@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"stool-grabber/internal/domain"
 )
 
 // UserMessages — компактная структура, оптимизированная под отправку в LLM слой.
 type UserMessages struct {
-	User     string   `json:"user"`
+	UserID   string   `json:"user_id"`
+	Username string   `json:"username"`
 	Messages []string `json:"messages"`
 }
 
@@ -40,7 +43,7 @@ func Aggregate(params Params, raw *domain.ScrapeResult) (*Result, error) {
 
 	byUser := make(map[int64][]string)
 	for _, thread := range raw.Threads {
-		_ = thread
+		postCtx := postExcerpt(thread.PostText, 180)
 		for _, c := range thread.Comments {
 			uid := c.SenderUserID
 			if uid == 0 {
@@ -54,7 +57,11 @@ func Aggregate(params Params, raw *domain.ScrapeResult) (*Result, error) {
 			if c.Text == "" {
 				continue
 			}
-			byUser[uid] = append(byUser[uid], c.Text)
+			msg := c.Text
+			if postCtx != "" {
+				msg = fmt.Sprintf("[Пост: %s]: %s", postCtx, msg)
+			}
+			byUser[uid] = append(byUser[uid], msg)
 		}
 	}
 
@@ -91,8 +98,15 @@ func Aggregate(params Params, raw *domain.ScrapeResult) (*Result, error) {
 
 	outUsers := make([]UserMessages, 0, len(users))
 	for _, u := range users {
+		var username string
+		if raw.Users != nil {
+			if ref, ok := raw.Users[u.id]; ok {
+				username = displayName(ref)
+			}
+		}
 		outUsers = append(outUsers, UserMessages{
-			User:     strconv.FormatInt(u.id, 10),
+			UserID:   strconv.FormatInt(u.id, 10),
+			Username: username,
 			Messages: u.messages,
 		})
 	}
@@ -112,5 +126,42 @@ func Aggregate(params Params, raw *domain.ScrapeResult) (*Result, error) {
 		JSON:              bytes.TrimSpace(buf.Bytes()),
 		FilteredByMinCount: filtered,
 	}, nil
+}
+
+func displayName(u domain.UserRef) string {
+	un := strings.TrimSpace(u.Username)
+	if un != "" {
+		return "@" + strings.TrimPrefix(un, "@")
+	}
+	fn := strings.TrimSpace(strings.TrimSpace(u.FirstName) + " " + strings.TrimSpace(u.LastName))
+	if fn != "" {
+		return fn
+	}
+	return ""
+}
+
+func postExcerpt(s string, maxRunes int) string {
+	s = strings.TrimSpace(s)
+	if s == "" || maxRunes <= 0 {
+		return ""
+	}
+	// Normalize whitespace cheaply and deterministically.
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\t", " ")
+	s = strings.Join(strings.Fields(s), " ")
+	if s == "" {
+		return ""
+	}
+	if utf8.RuneCountInString(s) <= maxRunes {
+		return s
+	}
+	out := make([]rune, 0, maxRunes)
+	for _, r := range s {
+		out = append(out, r)
+		if len(out) >= maxRunes {
+			break
+		}
+	}
+	return string(out)
 }
 

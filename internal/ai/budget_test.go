@@ -13,7 +13,7 @@ func TestApplyBudget_TrimsMessagesPerUserAndChars(t *testing.T) {
 
 	in := contractgen.AnalyzeCoreInput{
 		Users: []contractgen.AnalyzeCoreInputUsersItem{
-			{User: "1", Messages: []string{"aaaaa", "bbbbb", "ccccc"}},
+			{UserId: "1", Username: "@u1", Messages: []string{"aaaaa", "bbbbb", "ccccc"}},
 		},
 	}
 
@@ -42,8 +42,8 @@ func TestApplyBudget_RebuildsUsersJsonAndCapsSize(t *testing.T) {
 
 	in := contractgen.AnalyzeCoreInput{
 		Users: []contractgen.AnalyzeCoreInputUsersItem{
-			{User: "1", Messages: []string{strings.Repeat("x", 100)}},
-			{User: "2", Messages: []string{strings.Repeat("y", 100)}},
+			{UserId: "1", Username: "@u1", Messages: []string{strings.Repeat("x", 100)}},
+			{UserId: "2", Username: "@u2", Messages: []string{strings.Repeat("y", 100)}},
 		},
 	}
 
@@ -66,7 +66,7 @@ func TestApplyBudget_DeterministicOutput(t *testing.T) {
 
 	in := contractgen.AnalyzeCoreInput{
 		Users: []contractgen.AnalyzeCoreInputUsersItem{
-			{User: "1", Messages: []string{"hello", "world"}},
+			{UserId: "1", Username: "@u1", Messages: []string{"hello", "world"}},
 		},
 	}
 	opt := BudgetOptions{MaxMessagesPerUser: 2, MaxCharsPerMessage: 10, MaxUsersJSONChars: 1000}

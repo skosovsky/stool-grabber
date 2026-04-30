@@ -64,7 +64,8 @@ func ApplyBudget(in contractgen.AnalyzeCoreInput, opt BudgetOptions) contractgen
 			outMsgs = append(outMsgs, trimRunes(m, opt.MaxCharsPerMessage))
 		}
 		users = append(users, contractgen.AnalyzeCoreInputUsersItem{
-			User:     u.User,
+			UserId:   u.UserId,
+			Username: u.Username,
 			Messages: outMsgs,
 		})
 	}

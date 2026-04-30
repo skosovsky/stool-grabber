@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -150,6 +151,53 @@ func TestWorkflow_AllUsersFiltered_SkipBranch(t *testing.T) {
 	}
 	if got := analyzeCalls.Load(); got != 0 {
 		t.Fatalf("analyzeCalls=%d, want 0", got)
+	}
+}
+
+func TestWorkflow_AnalyzeError_GeneratesErrorReport(t *testing.T) {
+	t.Parallel()
+
+	var analyzeCalls atomic.Int64
+
+	g, err := NewGraph(Deps{
+		Scraper: ScraperFunc(func(_ context.Context) (*domain.ScrapeResult, error) {
+			return &domain.ScrapeResult{
+				ChannelUsername: "chan",
+				Threads: []domain.PostThread{
+					{ChannelMessageID: 1, Comments: []domain.Comment{{SenderUserID: 10, Text: "x"}}},
+				},
+			}, nil
+		}),
+		Aggregator: AggregatorFunc(func(_ context.Context, _ *domain.ScrapeResult) (*aggregate.Result, error) {
+			return &aggregate.Result{UsersAfterTopN: 1}, nil
+		}),
+		Analyzer: AnalyzerFunc(func(_ context.Context, _ *aggregate.Result) (*contractgen.AnalyzeCoreOutput, error) {
+			analyzeCalls.Add(1)
+			return nil, fmt.Errorf("context deadline exceeded")
+		}),
+	})
+	if err != nil {
+		t.Fatalf("NewGraph: %v", err)
+	}
+
+	final, err := g.Invoke(context.Background(), State{ReportParams: report.Params{ChannelUsername: "@chan", Model: "m"}})
+	if err != nil {
+		t.Fatalf("Invoke: %v", err)
+	}
+	if got := analyzeCalls.Load(); got != 1 {
+		t.Fatalf("analyzeCalls=%d, want 1", got)
+	}
+	if final.Analyze != nil {
+		t.Fatalf("expected Analyze to be nil")
+	}
+	if strings.TrimSpace(final.AnalyzeErr) == "" {
+		t.Fatalf("expected AnalyzeErr to be set")
+	}
+	if final.ReportMarkdown == "" {
+		t.Fatalf("ReportMarkdown is empty")
+	}
+	if !strings.Contains(final.ReportMarkdown, "Анализ не выполнен") {
+		t.Fatalf("unexpected report: %q", final.ReportMarkdown)
 	}
 }
 

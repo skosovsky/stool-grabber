@@ -16,6 +16,7 @@ const (
 	nodeAnalyze    = "analyze"
 	nodeReportSkip = "report_skip"
 	nodeReportLLM  = "report_llm"
+	nodeReportAnalyzeError = "report_analyze_error"
 	nodeFinish     = "finish"
 )
 
@@ -27,6 +28,16 @@ func nextAfterAggregate(_ context.Context, state State) (string, error) {
 		return nodeReportSkip, nil
 	}
 	return nodeAnalyze, nil
+}
+
+func nextAfterAnalyze(_ context.Context, state State) (string, error) {
+	if state.Analyze != nil {
+		return nodeReportLLM, nil
+	}
+	if state.AnalyzeErr != "" {
+		return nodeReportAnalyzeError, nil
+	}
+	return "", fmt.Errorf("choice: analyze has neither result nor error")
 }
 
 // NewGraph builds and compiles the flowy graph.
@@ -62,7 +73,7 @@ func NewGraph(deps Deps) (*flowy.Graph[State], error) {
 		}
 		out, err := deps.Analyzer.Analyze(ctx, state.Agg)
 		if err != nil {
-			return State{}, err
+			return State{AnalyzeErr: err.Error()}, nil
 		}
 		return State{Analyze: out}, nil
 	})
@@ -82,13 +93,18 @@ func NewGraph(deps Deps) (*flowy.Graph[State], error) {
 		return State{ReportMarkdown: report.RenderLLMReport(state.ReportParams, state.Analyze, users)}, nil
 	})
 
+	b.AddNode(nodeReportAnalyzeError, func(_ context.Context, state State) (State, error) {
+		return State{ReportMarkdown: report.RenderAnalyzeErrorReport(state.AnalyzeErr)}, nil
+	})
+
 	b.AddNode(nodeFinish, func(_ context.Context, _ State) (State, error) { return State{}, nil })
 
 	b.AddEdge(nodeScrape, nodeAggregate)
 	b.AddChoice(nodeAggregate, nextAfterAggregate)
-	b.AddEdge(nodeAnalyze, nodeReportLLM)
+	b.AddChoice(nodeAnalyze, nextAfterAnalyze)
 	b.AddEdge(nodeReportSkip, nodeFinish)
 	b.AddEdge(nodeReportLLM, nodeFinish)
+	b.AddEdge(nodeReportAnalyzeError, nodeFinish)
 
 	b.SetEntryPoint(nodeScrape)
 	b.SetFinishPoint(nodeFinish)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"iter"
 	"testing"
+	"time"
 
 	"stool-grabber/internal/ai/contractgen"
 
@@ -28,7 +29,7 @@ func TestAnalyzeWithInvoker_ParsesStructuredOutput(t *testing.T) {
 		text: `{"agitators":[{"user":"10","message_count":3,"what_triggers":"x","style":"y","wont_pass_by":"z"}],"hot_topics":["t1","t2"]}`,
 	}
 
-	got, err := analyzeWithInvoker(context.Background(), inv, exec)
+	got, err := analyzeWithInvoker(context.Background(), inv, exec, 5*time.Second)
 	if err != nil {
 		t.Fatalf("analyzeWithInvoker error: %v", err)
 	}

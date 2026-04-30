@@ -16,8 +16,8 @@ func TestBuildAnalyzeCoreInput(t *testing.T) {
 	}
 	agg := &aggregate.Result{
 		Users: []aggregate.UserMessages{
-			{User: "10", Messages: []string{"a", "b"}},
-			{User: "20", Messages: []string{"c"}},
+			{UserID: "10", Username: "@alice", Messages: []string{"a", "b"}},
+			{UserID: "20", Username: "Bob Builder", Messages: []string{"c"}},
 		},
 	}
 

@@ -12,7 +12,8 @@ const AnalyzeCore PromptID = "analyze/core"
 
 type AnalyzeCoreInputUsersItem struct {
 	Messages []string `json:"messages" prompt:"messages" validate:"required,dive"`
-	User     string   `json:"user" prompt:"user" validate:"required"`
+	UserId   string   `json:"user_id" prompt:"user_id" validate:"required"`
+	Username string   `json:"username" prompt:"username" validate:"required"`
 }
 
 type AnalyzeCoreInput struct {

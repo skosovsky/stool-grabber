@@ -18,13 +18,15 @@ input_schema:
         items:
           type: object
           properties:
-            user:
+            user_id:
+              type: string
+            username:
               type: string
             messages:
               type: array
               items:
                 type: string
-          required: ["user", "messages"]
+          required: ["user_id", "username", "messages"]
     required: ["channel_username", "prompt_template", "users_json", "users"]
 
 response_format:
@@ -67,6 +69,10 @@ messages:
 
       Инструкция автора задачи:
       {{ .prompt_template }}
+
+      Правило идентификации:
+      - В поле user (в ответе) используй username, если он не пустой.
+      - Иначе используй user_id.
 
       Верни ответ СТРОГО в JSON согласно response_format.
   - role: user

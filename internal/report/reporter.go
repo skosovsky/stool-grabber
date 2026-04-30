@@ -15,6 +15,17 @@ func RenderSkipReport() string {
 	return "# Отчёт\n\n" + skipText + "\n"
 }
 
+func RenderAnalyzeErrorReport(errText string) string {
+	errText = strings.TrimSpace(errText)
+	if errText == "" {
+		errText = "неизвестная ошибка"
+	}
+	return "# Отчёт\n\n" +
+		"## Analyze\n\n" +
+		"Анализ не выполнен: **" + sanitizeLLMLine(errText) + "**\n\n" +
+		"Артефакты (tech/users dump) сохранены локально, их можно анализировать вручную или повторить запуск позже.\n"
+}
+
 func RenderLLMReport(params Params, result *contractgen.AnalyzeCoreOutput, users map[int64]domain.UserRef) string {
 	channel := strings.TrimPrefix(strings.TrimSpace(params.ChannelUsername), "@")
 	model := strings.TrimSpace(params.Model)

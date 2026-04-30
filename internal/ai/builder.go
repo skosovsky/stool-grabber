@@ -26,7 +26,8 @@ func BuildAnalyzeCoreInput(params AnalyzeParams, agg *aggregate.Result) (contrac
 	items := make([]contractgen.AnalyzeCoreInputUsersItem, 0, len(agg.Users))
 	for _, u := range agg.Users {
 		items = append(items, contractgen.AnalyzeCoreInputUsersItem{
-			User:     u.User,
+			UserId:   u.UserID,
+			Username: u.Username,
 			Messages: u.Messages,
 		})
 	}

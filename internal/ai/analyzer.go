@@ -18,6 +18,7 @@ import (
 type Analyzer struct {
 	Prompts *contractgen.Prompts
 	Invoker prompty.Invoker
+	Timeout time.Duration
 }
 
 func (a *Analyzer) Analyze(ctx context.Context, params AnalyzeParams, agg *aggregate.Result) (*contractgen.AnalyzeCoreOutput, error) {
@@ -31,10 +32,14 @@ func (a *Analyzer) Analyze(ctx context.Context, params AnalyzeParams, agg *aggre
 	if err != nil {
 		return nil, err
 	}
-	return analyzeWithInvoker(ctx, a.Invoker, exec)
+	timeout := a.Timeout
+	if timeout <= 0 {
+		timeout = 300 * time.Second
+	}
+	return analyzeWithInvoker(ctx, a.Invoker, exec, timeout)
 }
 
-func analyzeWithInvoker(ctx context.Context, inv prompty.Invoker, exec *prompty.PromptExecution) (*contractgen.AnalyzeCoreOutput, error) {
+func analyzeWithInvoker(ctx context.Context, inv prompty.Invoker, exec *prompty.PromptExecution, timeout time.Duration) (*contractgen.AnalyzeCoreOutput, error) {
 	base := routery.ExecutorFunc[*prompty.PromptExecution, *contractgen.AnalyzeCoreOutput](func(c context.Context, e *prompty.PromptExecution) (*contractgen.AnalyzeCoreOutput, error) {
 		out, err := prompty.ExecuteWithStructuredOutput[contractgen.AnalyzeCoreOutput](c, inv, e)
 		if err != nil {
@@ -73,8 +78,8 @@ func analyzeWithInvoker(ctx context.Context, inv prompty.Invoker, exec *prompty.
 
 	execWithMW := routery.Apply(
 		base,
-		routery.Timeout[*prompty.PromptExecution, *contractgen.AnalyzeCoreOutput](300*time.Second),
 		routery.RetryIf[*prompty.PromptExecution, *contractgen.AnalyzeCoreOutput](5, 1500*time.Millisecond, pred),
+		routery.Timeout[*prompty.PromptExecution, *contractgen.AnalyzeCoreOutput](timeout),
 	)
 
 	return execWithMW.Execute(ctx, exec)

@@ -19,7 +19,7 @@ func TestBuildExecution_SetsModelAndTemperature(t *testing.T) {
 
 	agg := &aggregate.Result{
 		Users: []aggregate.UserMessages{
-			{User: "1", Messages: []string{"hello"}},
+			{UserID: "1", Username: "@u1", Messages: []string{"hello"}},
 		},
 	}
 

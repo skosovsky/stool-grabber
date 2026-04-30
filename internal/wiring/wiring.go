@@ -40,7 +40,7 @@ func NewDeps(rt Runtime) (Deps, error) {
 	if err != nil {
 		return Deps{}, err
 	}
-	analyzer := &ai.Analyzer{Prompts: prompts, Invoker: invoker}
+	analyzer := &ai.Analyzer{Prompts: prompts, Invoker: invoker, Timeout: rt.OpenRouterTimeout}
 
 	return Deps{
 		RunnerDeps: cli.Deps{

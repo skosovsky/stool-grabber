@@ -46,3 +46,25 @@ func WriteJSONFile(path string, v any) error {
 	return nil
 }
 
+func WriteRawJSONFile(path string, b []byte) error {
+	if strings.TrimSpace(path) == "" {
+		return fmt.Errorf("json path is empty")
+	}
+	dir := filepath.Dir(path)
+	if dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
+			return fmt.Errorf("mkdir %s: %w", dir, err)
+		}
+	}
+	if len(b) == 0 {
+		b = []byte("null")
+	}
+	if b[len(b)-1] != '\n' {
+		b = append(append([]byte(nil), b...), '\n')
+	}
+	if err := os.WriteFile(path, b, 0o640); err != nil {
+		return fmt.Errorf("write json file: %w", err)
+	}
+	return nil
+}
+

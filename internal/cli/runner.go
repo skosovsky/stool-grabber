@@ -125,7 +125,11 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 		if final.Analyze != nil {
 			_, _ = fmt.Fprintf(deps.Out, "Analyze summary: agitators=%d, hot_topics=%d.\n", len(final.Analyze.Agitators), len(final.Analyze.HotTopics))
 		} else {
-			_, _ = fmt.Fprintln(deps.Out, "Analyze skipped: no users after filtering/top-N.")
+			if strings.TrimSpace(final.AnalyzeErr) != "" {
+				_, _ = fmt.Fprintf(deps.Out, "Analyze failed: %s\n", strings.TrimSpace(final.AnalyzeErr))
+			} else {
+				_, _ = fmt.Fprintln(deps.Out, "Analyze skipped: no users after filtering/top-N.")
+			}
 		}
 
 		if final.ReportMarkdown != "" {
@@ -146,6 +150,13 @@ func RunJob(ctx context.Context, deps Deps, job *JobConfig) error {
 			techPath := techDumpPath(job.OutputFilepath)
 			_, _ = fmt.Fprintf(deps.Out, "Report: пишу tech json -> %s\n", techPath)
 			if err := reportfs.WriteJSONFile(techPath, td); err != nil {
+				return err
+			}
+		}
+		if job.OutputFilepath != "" && final.Agg != nil {
+			usersPath := usersDumpPath(job.OutputFilepath)
+			_, _ = fmt.Fprintf(deps.Out, "Report: пишу users json -> %s\n", usersPath)
+			if err := reportfs.WriteRawJSONFile(usersPath, final.Agg.UsersJSON); err != nil {
 				return err
 			}
 		}
@@ -171,5 +182,14 @@ func techDumpPath(markdownPath string) string {
 		return markdownPath + ".tech.json"
 	}
 	return base + ".tech.json"
+}
+
+func usersDumpPath(markdownPath string) string {
+	ext := strings.ToLower(filepath.Ext(markdownPath))
+	base := strings.TrimSuffix(markdownPath, ext)
+	if base == markdownPath {
+		return markdownPath + ".users.json"
+	}
+	return base + ".users.json"
 }
 
