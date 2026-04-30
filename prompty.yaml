@@ -1,0 +1,9 @@
+version: "1"
+packages:
+  - name: aicontract
+    path: internal/ai/contractgen
+    package: contractgen
+    mode: types
+    queries:
+      - internal/ai/prompts/
+

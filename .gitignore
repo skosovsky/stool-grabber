@@ -1,0 +1,18 @@
+.env
+.env.*
+!.env.example
+
+# Telegram MTProto session (default path)
+session.json
+*.session.json
+
+# Reports/output
+reports/
+out/
+
+# Go build artifacts
+*.exe
+*.test
+*.out
+bin/
+

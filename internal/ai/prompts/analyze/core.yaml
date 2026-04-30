@@ -1,0 +1,77 @@
+id: analyze/core
+version: "1.0"
+description: "Analyze Telegram discussion corpus and extract agitators + hot topics."
+
+input_schema:
+  name: analyze_input
+  schema:
+    type: object
+    properties:
+      channel_username:
+        type: string
+      prompt_template:
+        type: string
+      users_json:
+        type: string
+      users:
+        type: array
+        items:
+          type: object
+          properties:
+            user:
+              type: string
+            messages:
+              type: array
+              items:
+                type: string
+          required: ["user", "messages"]
+    required: ["channel_username", "prompt_template", "users_json", "users"]
+
+response_format:
+  name: analyze_output
+  schema:
+    type: object
+    additionalProperties: false
+    properties:
+      agitators:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          properties:
+            user:
+              type: string
+            message_count:
+              type: integer
+              minimum: 0
+            what_triggers:
+              type: string
+            style:
+              type: string
+            wont_pass_by:
+              type: string
+          required: ["user", "message_count", "what_triggers", "style", "wont_pass_by"]
+      hot_topics:
+        type: array
+        items:
+          type: string
+      notes:
+        type: string
+    required: ["agitators", "hot_topics"]
+
+messages:
+  - role: system
+    content: |
+      Ты — аналитик социальных взаимодействий. Работай строго с предоставленной выгрузкой.
+      Любые выводы делай только на основе JSON-данных ниже; не додумывай отсутствующие факты.
+
+      Инструкция автора задачи:
+      {{ .prompt_template }}
+
+      Верни ответ СТРОГО в JSON согласно response_format.
+  - role: user
+    content: |
+      Канал: @{{ .channel_username }}
+
+      Данные (users/messages):
+      {{ .users_json }}
